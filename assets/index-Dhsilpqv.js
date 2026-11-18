@@ -326,7 +326,7 @@
           </form>
 
           <div class="sim-map-wrap">
-            <div class="map-note">Mapa real · Leaflet + OpenStreetMap</div>
+            <div class="map-note">Mapa real · Leaflet (sem API key)</div>
             <div id="map" role="region" aria-label="Mapa de Belo Horizonte"></div>
           </div>
 
@@ -383,7 +383,7 @@
       <span>Cidades Inteligentes · Belo Horizonte</span>
     </div>
   </footer>
-`;document.querySelector("#from").value="pampulha";document.querySelector("#to").value="centro";const U=ot.map("map",{zoomControl:!0,scrollWheelZoom:!0,preferCanvas:!0}).setView(vs,12),oi=ot.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{attribution:"&copy; OpenStreetMap &copy; CARTO",subdomains:"abcd",maxZoom:19}),Sn=ot.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"&copy; OpenStreetMap",maxZoom:19});oi.addTo(U);oi.on("tileerror",()=>{U.hasLayer(Sn)||(U.removeLayer(oi),Sn.addTo(U))});let ye=null,we=null;const si=ot.layerGroup().addTo(U);function bs(){ye&&(U.removeLayer(ye),ye=null),we&&(U.removeLayer(we),we=null),si.clearLayers()}function On(c){bs(),ye=ot.polyline(c.primaryPath,{color:c.level.key==="high"?"#e11d48":c.level.key==="medium"?"#f5a623":"#0d9488",weight:7,opacity:.95}).addTo(U),we=ot.polyline(c.alternative.path,{color:"#0d9488",weight:6,opacity:.95,dashArray:"10 8"}).addTo(U),ot.marker([c.origin.lat,c.origin.lng]).bindPopup(`<strong>Origem</strong><br>${c.origin.label}`).addTo(si),ot.marker([c.destination.lat,c.destination.lng]).bindPopup(`<strong>Destino</strong><br>${c.destination.label}`).addTo(si);const P=ot.latLngBounds([...c.primaryPath,...c.alternative.path]);U.fitBounds(P.pad(.25)),setTimeout(()=>U.invalidateSize(),50);const u=document.querySelector("#results");u.classList.add("is-visible"),u.innerHTML=`
+`;document.querySelector("#from").value="pampulha";document.querySelector("#to").value="centro";const U=ot.map("map",{zoomControl:!0,scrollWheelZoom:!0,preferCanvas:!0}).setView(vs,12),oi=ot.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",{attribution:"Tiles &copy; Esri &mdash; fontes Esri, OpenStreetMap e demais",maxZoom:19}),Sn=ot.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"&copy; OpenStreetMap",maxZoom:19});oi.addTo(U);oi.on("tileerror",()=>{U.hasLayer(Sn)||(U.removeLayer(oi),Sn.addTo(U))});let ye=null,we=null;const si=ot.layerGroup().addTo(U);function bs(){ye&&(U.removeLayer(ye),ye=null),we&&(U.removeLayer(we),we=null),si.clearLayers()}function On(c){bs(),ye=ot.polyline(c.primaryPath,{color:c.level.key==="high"?"#e11d48":c.level.key==="medium"?"#f5a623":"#0d9488",weight:7,opacity:.95}).addTo(U),we=ot.polyline(c.alternative.path,{color:"#0d9488",weight:6,opacity:.95,dashArray:"10 8"}).addTo(U),ot.marker([c.origin.lat,c.origin.lng]).bindPopup(`<strong>Origem</strong><br>${c.origin.label}`).addTo(si),ot.marker([c.destination.lat,c.destination.lng]).bindPopup(`<strong>Destino</strong><br>${c.destination.label}`).addTo(si);const P=ot.latLngBounds([...c.primaryPath,...c.alternative.path]);U.fitBounds(P.pad(.25)),setTimeout(()=>U.invalidateSize(),50);const u=document.querySelector("#results");u.classList.add("is-visible"),u.innerHTML=`
     <div class="alert alert--${c.level.key}">
       <strong>${c.level.title} (${c.level.label})</strong>
       <span>${c.corridor.name} · horário ${c.time} · índice ${c.level.score}/100</span>
