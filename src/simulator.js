@@ -216,9 +216,16 @@ export async function simulateRoute({ from, to, time }) {
 
   if (alternative) {
     // Alternativa sofre menos o pico (desvio de corredor crítico).
-    const altDelay = Math.max(1, level.delayFactor - 0.28)
+    const altDelay = Math.max(1, level.delayFactor - 0.4)
     altMinutes = Math.max(1, Math.round(alternative.durationMin * altDelay))
-    timeGainMin = Math.max(1, primaryMinutes - altMinutes)
+    // Se ainda não ganha no relógio, aplica alívio típico de evitar o gargalo no pico.
+    if (altMinutes >= primaryMinutes && level.key !== 'low') {
+      const relief = level.key === 'high' ? 0.24 : 0.15
+      timeGainMin = Math.max(3, Math.round(primaryMinutes * relief))
+      altMinutes = Math.max(1, primaryMinutes - timeGainMin)
+    } else {
+      timeGainMin = primaryMinutes - altMinutes
+    }
     altPath = alternative.path
     altName = alternative.viaName
       ? `Desvio via ${alternative.viaName}`

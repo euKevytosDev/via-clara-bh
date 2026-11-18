@@ -510,9 +510,11 @@ function drawResult(result) {
       <article class="result-card">
         <small>Rota alternativa</small>
         <strong>${result.alternative.name}</strong>
-        <p>${result.alternative.minutes} min · economia de ${result.alternative.timeGainMin} min${
-          result.alternative.hasRealGeometry ? ' · traçado no mapa' : ''
-        }</p>
+        <p>${result.alternative.minutes} min · ${
+          result.alternative.timeGainMin >= 0
+            ? `economia de ${result.alternative.timeGainMin} min`
+            : `${Math.abs(result.alternative.timeGainMin)} min a mais`
+        }${result.alternative.hasRealGeometry ? ' · traçado no mapa' : ''}</p>
       </article>
       <article class="result-card">
         <small>Janela ideal · ODS 11</small>
