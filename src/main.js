@@ -307,7 +307,7 @@ document.querySelector('#app').innerHTML = `
           </form>
 
           <div class="sim-map-wrap">
-            <div class="map-note">Mapa real · Leaflet + OpenStreetMap</div>
+            <div class="map-note">Mapa real · Leaflet (sem API key)</div>
             <div id="map" role="region" aria-label="Mapa de Belo Horizonte"></div>
           </div>
 
@@ -375,23 +375,25 @@ const map = L.map('map', {
   preferCanvas: true,
 }).setView(bhCenter, 12)
 
-// Camada colorida e legível (sem API key). Fallback OSM clássico.
-const voyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-  attribution: '&copy; OpenStreetMap &copy; CARTO',
-  subdomains: 'abcd',
-  maxZoom: 19,
-})
+// Sem API key: Esri World Street (visual limpo) + fallback OSM.
+const esri = L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+  {
+    attribution: 'Tiles &copy; Esri &mdash; fontes Esri, OpenStreetMap e demais',
+    maxZoom: 19,
+  },
+)
 
 const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap',
   maxZoom: 19,
 })
 
-voyager.addTo(map)
+esri.addTo(map)
 
-voyager.on('tileerror', () => {
+esri.on('tileerror', () => {
   if (!map.hasLayer(osm)) {
-    map.removeLayer(voyager)
+    map.removeLayer(esri)
     osm.addTo(map)
   }
 })
