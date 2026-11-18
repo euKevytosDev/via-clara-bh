@@ -307,7 +307,7 @@ document.querySelector('#app').innerHTML = `
           </form>
 
           <div class="sim-map-wrap">
-            <div class="map-note">Mapa real · Leaflet (sem API key)</div>
+            <div class="map-note">Belo Horizonte · mapa interativo</div>
             <div id="map" role="region" aria-label="Mapa de Belo Horizonte"></div>
           </div>
 
