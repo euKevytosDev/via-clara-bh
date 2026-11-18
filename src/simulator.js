@@ -1,4 +1,11 @@
-import { corridors, places, routeCatalog } from './corridors.js'
+import { corridors } from './corridors.js'
+import { fetchDrivingRouteVia, fetchDrivingRoutes, geocodeOne } from './geo.js'
+
+const VIA_POINTS = [
+  { name: 'Anel / Carlos Luz', lat: -19.905, lng: -43.98 },
+  { name: 'Av. do Contorno', lat: -19.924, lng: -43.94 },
+  { name: 'Av. Amazonas', lat: -19.94, lng: -43.96 },
+]
 
 const PEAK_MORNING = { start: 7, end: 9 }
 const PEAK_EVENING = { start: 17, end: 19 }
@@ -7,6 +14,15 @@ const SHOULDER = [
   { start: 9, end: 11 },
   { start: 16, end: 17 },
   { start: 19, end: 20 },
+]
+
+export const quickPlaces = [
+  { label: 'UFMG / Pampulha', query: 'Universidade Federal de Minas Gerais, Belo Horizonte' },
+  { label: 'Praça Sete', query: 'Praça Sete de Setembro, Belo Horizonte' },
+  { label: 'Savassi', query: 'Praça da Liberdade, Belo Horizonte' },
+  { label: 'Mercado Central', query: 'Mercado Central, Belo Horizonte' },
+  { label: 'Barreiro', query: 'Barreiro, Belo Horizonte' },
+  { label: 'Venda Nova', query: 'Venda Nova, Belo Horizonte' },
 ]
 
 function parseHour(timeStr) {
@@ -26,8 +42,7 @@ function congestionLevel(hour, peakFactor = 1) {
       label: 'Lentidão alta',
       title: 'Gargalo crítico detectado',
       score: Math.round(88 * peakFactor),
-      baseMinutes: Math.round(42 * peakFactor),
-      co2Factor: 1.35,
+      delayFactor: 1.55,
     }
   }
   if (inShoulder) {
@@ -36,8 +51,7 @@ function congestionLevel(hour, peakFactor = 1) {
       label: 'Fluxo moderado',
       title: 'Atenção no corredor',
       score: Math.round(55 * peakFactor),
-      baseMinutes: Math.round(28 * peakFactor),
-      co2Factor: 1.12,
+      delayFactor: 1.25,
     }
   }
   return {
@@ -45,8 +59,7 @@ function congestionLevel(hour, peakFactor = 1) {
     label: 'Fluxo estável',
     title: 'Condições favoráveis',
     score: Math.round(22 * peakFactor),
-    baseMinutes: Math.round(18 * peakFactor),
-    co2Factor: 1,
+    delayFactor: 1,
   }
 }
 
@@ -70,77 +83,56 @@ function findIdealWindow(hour) {
 }
 
 function estimateCo2Kg(minutesSaved) {
-  // Estimativa didática: ~0.21 kg CO₂/km em congestionamento extra vs fluxo livre,
-  // convertendo minutos economizados em ~0.35 km equivalentes por minuto parado/andando.
   return Number((minutesSaved * 0.045).toFixed(2))
 }
 
-export function getPlace(id) {
-  return places.find((p) => p.id === id)
+function distanceMeters(a, b) {
+  const toRad = (d) => (d * Math.PI) / 180
+  const R = 6371000
+  const dLat = toRad(b[0] - a[0])
+  const dLng = toRad(b[1] - a[1])
+  const lat1 = toRad(a[0])
+  const lat2 = toRad(b[0])
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2
+  return 2 * R * Math.asin(Math.sqrt(h))
 }
 
-export function simulateRoute({ from, to, time }) {
-  const origin = getPlace(from)
-  const destination = getPlace(to)
-  if (!origin || !destination) {
-    throw new Error('Origem ou destino inválidos')
-  }
-  if (from === to) {
-    throw new Error('Escolha origem e destino diferentes')
-  }
+function detectCorridor(path) {
+  let best = { name: 'Vias urbanas de BH', peakFactor: 0.9, score: Infinity }
+  const samples = path.filter((_, i) => i % Math.max(1, Math.floor(path.length / 24)) === 0)
 
-  const match =
-    routeCatalog.find((r) => r.from === from && r.to === to) ||
-    routeCatalog.find((r) => r.from === to && r.to === from)
-
-  const hour = parseHour(time)
-  const primaryId = match?.primary || 'contorno'
-  const corridor = corridors[primaryId]
-  const level = congestionLevel(hour, corridor.peakFactor)
-  const ideal = findIdealWindow(hour)
-
-  const alt = match?.alternative || {
-    name: 'Vias secundárias + Anel Rodoviário',
-    path: [corridor.path[0], [-19.905, -43.98], corridor.path[corridor.path.length - 1]],
-    timeGainMin: level.key === 'high' ? 14 : level.key === 'medium' ? 8 : 3,
-    flowGainPct: level.key === 'high' ? 45 : 25,
+  for (const corridor of Object.values(corridors)) {
+    let min = Infinity
+    for (const sample of samples) {
+      for (const point of corridor.path) {
+        min = Math.min(min, distanceMeters(sample, point))
+      }
+    }
+    if (min < best.score) {
+      best = { name: corridor.name, peakFactor: corridor.peakFactor, score: min }
+    }
   }
 
-  const timeSaved = level.key === 'low' ? Math.max(3, Math.round(alt.timeGainMin * 0.35)) : alt.timeGainMin
-  const altMinutes = Math.max(12, level.baseMinutes - timeSaved)
-  const co2 = estimateCo2Kg(timeSaved)
-
-  return {
-    origin,
-    destination,
-    time,
-    hour,
-    corridor,
-    level,
-    primaryPath: corridor.path,
-    alternative: {
-      ...alt,
-      minutes: altMinutes,
-      timeGainMin: timeSaved,
-      co2Kg: co2,
-    },
-    ideal,
-    tips: buildTips(level, corridor.name),
+  if (best.score > 900) {
+    return { name: 'Vias urbanas de BH', peakFactor: 0.9 }
   }
+  return { name: best.name, peakFactor: best.peakFactor }
 }
 
 function buildTips(level, corridorName) {
   if (level.key === 'high') {
     return [
-      `Evite ${corridorName} neste horário, se possível.`,
-      'Considere transporte coletivo ou saída após as 09h15.',
+      `Evite o eixo ${corridorName} neste horário, se possível.`,
+      'Considere a rota alternativa ou saída após as 09h15.',
       'O para-e-anda eleva emissões e tempo de viagem.',
     ]
   }
   if (level.key === 'medium') {
     return [
       'Há retenção moderada: mantenha margem de tempo.',
-      'Rotas secundárias podem reduzir paradas.',
+      'A rota alternativa pode reduzir paradas.',
       'Monitore o corredor antes de sair.',
     ]
   }
@@ -151,4 +143,121 @@ function buildTips(level, corridorName) {
   ]
 }
 
-export { places, corridors }
+async function resolvePoint(value) {
+  if (value && typeof value === 'object' && value.lat && value.lng) {
+    return {
+      label: value.label,
+      lat: value.lat,
+      lng: value.lng,
+    }
+  }
+  if (typeof value === 'string' && value.trim()) {
+    return geocodeOne(value.trim())
+  }
+  throw new Error('Informe origem e destino válidos')
+}
+
+/**
+ * Simula rota real entre dois pontos (endereço ou coordenada).
+ * @param {{ from: string|{label,lat,lng}, to: string|{label,lat,lng}, time: string }} input
+ */
+export async function simulateRoute({ from, to, time }) {
+  const origin = await resolvePoint(from)
+  const destination = await resolvePoint(to)
+
+  const samePoint =
+    Math.abs(origin.lat - destination.lat) < 0.0003 &&
+    Math.abs(origin.lng - destination.lng) < 0.0003
+  if (samePoint) {
+    throw new Error('Escolha origem e destino diferentes')
+  }
+
+  const routes = await fetchDrivingRoutes(origin, destination)
+  const primary = routes[0]
+  let alternative = routes[1] || null
+
+  // Se o OSRM não devolver alternativa, força um desvio “por fora” via Anel/Contorno.
+  if (!alternative) {
+    let bestVia = null
+    for (const via of VIA_POINTS) {
+      try {
+        const candidate = await fetchDrivingRouteVia(origin, via, destination)
+        const similar =
+          Math.abs(candidate.distanceKm - primary.distanceKm) < 0.4 &&
+          Math.abs(candidate.durationMin - primary.durationMin) < 2
+        if (similar) continue
+        if (!bestVia || candidate.durationMin < bestVia.route.durationMin) {
+          bestVia = { route: candidate, name: via.name }
+        }
+      } catch {
+        // tenta próximo via
+      }
+    }
+    if (bestVia) {
+      alternative = {
+        ...bestVia.route,
+        viaName: bestVia.name,
+      }
+    }
+  }
+
+  const corridor = detectCorridor(primary.path)
+  const hour = parseHour(time)
+  const level = congestionLevel(hour, corridor.peakFactor)
+  const ideal = findIdealWindow(hour)
+
+  const primaryMinutes = Math.max(1, Math.round(primary.durationMin * level.delayFactor))
+  let altMinutes
+  let timeGainMin
+  let altPath
+  let altName
+  let altDistanceKm
+  let hasRealGeometry = false
+
+  if (alternative) {
+    // Alternativa sofre menos o pico (desvio de corredor crítico).
+    const altDelay = Math.max(1, level.delayFactor - 0.28)
+    altMinutes = Math.max(1, Math.round(alternative.durationMin * altDelay))
+    timeGainMin = Math.max(1, primaryMinutes - altMinutes)
+    altPath = alternative.path
+    altName = alternative.viaName
+      ? `Desvio via ${alternative.viaName}`
+      : 'Rota alternativa pelas vias secundárias'
+    altDistanceKm = alternative.distanceKm
+    hasRealGeometry = true
+  } else {
+    const ratio = level.key === 'high' ? 0.22 : level.key === 'medium' ? 0.14 : 0.08
+    timeGainMin = Math.max(2, Math.round(primaryMinutes * ratio))
+    altMinutes = Math.max(primaryMinutes - timeGainMin, Math.round(primaryMinutes * 0.7))
+    altPath = primary.path
+    altName = 'Mesmo eixo com saída em janela mais livre'
+    altDistanceKm = primary.distanceKm
+    hasRealGeometry = false
+  }
+
+  return {
+    origin,
+    destination,
+    time,
+    hour,
+    corridor,
+    level,
+    primaryPath: primary.path,
+    primary: {
+      minutes: primaryMinutes,
+      distanceKm: primary.distanceKm,
+      freeFlowMin: primary.durationMin,
+    },
+    alternative: {
+      name: altName,
+      path: altPath,
+      minutes: altMinutes,
+      distanceKm: altDistanceKm,
+      timeGainMin,
+      co2Kg: estimateCo2Kg(timeGainMin),
+      hasRealGeometry,
+    },
+    ideal,
+    tips: buildTips(level, corridor.name),
+  }
+}

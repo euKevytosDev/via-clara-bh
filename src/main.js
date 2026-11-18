@@ -4,8 +4,9 @@ import L from 'leaflet'
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
-import { places, bhCenter } from './corridors.js'
-import { simulateRoute } from './simulator.js'
+import { bhCenter } from './corridors.js'
+import { quickPlaces, simulateRoute } from './simulator.js'
+import { searchAddresses } from './geo.js'
 import { icons } from './icons.js'
 
 delete L.Icon.Default.prototype._getIconUrl
@@ -15,8 +16,11 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 })
 
-const placeOptions = places
-  .map((p) => `<option value="${p.id}">${p.label}</option>`)
+const quickChips = quickPlaces
+  .map(
+    (place) =>
+      `<button type="button" class="chip" data-query="${place.query.replace(/"/g, '&quot;')}">${place.label}</button>`,
+  )
   .join('')
 
 document.querySelector('#app').innerHTML = `
@@ -280,29 +284,53 @@ document.querySelector('#app').innerHTML = `
         <div class="section-head reveal">
           <h2>Simulador inteligente de rotas</h2>
           <p>
-            Escolha origem, destino e horário. A ViaClara BH calcula alerta de pico,
-            rota alternativa, janela ideal de saída e estimativa de economia de CO₂.
+            Digite ruas e endereços reais de Belo Horizonte. A ViaClara BH traça a rota
+            no mapa, sugere alternativa, alerta o pico e estima economia de tempo e CO₂.
           </p>
         </div>
 
         <div class="sim-shell reveal">
           <form class="sim-form" id="sim-form">
             <h3>Planejar deslocamento</h3>
-            <div class="field">
-              <label for="from">Origem</label>
-              <select id="from" name="from" required>${placeOptions}</select>
+            <div class="field field--suggest">
+              <label for="from">Origem (rua, número ou ponto)</label>
+              <input
+                id="from"
+                name="from"
+                type="text"
+                autocomplete="off"
+                placeholder="Ex.: Av. Afonso Pena, 1500"
+                required
+              />
+              <div class="suggest" id="from-suggest" hidden></div>
             </div>
-            <div class="field">
-              <label for="to">Destino</label>
-              <select id="to" name="to" required>${placeOptions}</select>
+            <div class="field field--suggest">
+              <label for="to">Destino (rua, número ou ponto)</label>
+              <input
+                id="to"
+                name="to"
+                type="text"
+                autocomplete="off"
+                placeholder="Ex.: Rua da Bahia, 1148"
+                required
+              />
+              <div class="suggest" id="to-suggest" hidden></div>
             </div>
             <div class="field">
               <label for="time">Horário pretendido</label>
               <input id="time" name="time" type="time" value="07:30" required />
             </div>
-            <button class="btn btn--primary" type="submit">Simular rota agora</button>
+            <div class="chip-row" id="quick-from" data-target="from">
+              <span class="chip-row__label">Atalhos origem</span>
+              ${quickChips}
+            </div>
+            <div class="chip-row" id="quick-to" data-target="to">
+              <span class="chip-row__label">Atalhos destino</span>
+              ${quickChips}
+            </div>
+            <button class="btn btn--primary" type="submit" id="sim-submit">Simular rota agora</button>
             <p class="form-hint">
-              Experimente Pampulha → Centro às 07:30 e compare com 10:30.
+              Dica: Av. Antônio Carlos, 6627 → Praça Sete de Setembro às 07:30.
             </p>
           </form>
 
@@ -366,8 +394,17 @@ document.querySelector('#app').innerHTML = `
   </footer>
 `
 
-document.querySelector('#from').value = 'pampulha'
-document.querySelector('#to').value = 'centro'
+const selected = {
+  from: null,
+  to: null,
+}
+
+const fromInput = document.querySelector('#from')
+const toInput = document.querySelector('#to')
+const submitBtn = document.querySelector('#sim-submit')
+
+fromInput.value = 'Av. Antônio Carlos, 6627'
+toInput.value = 'Praça Sete de Setembro'
 
 const map = L.map('map', {
   zoomControl: true,
@@ -375,7 +412,6 @@ const map = L.map('map', {
   preferCanvas: true,
 }).setView(bhCenter, 12)
 
-// Sem API key: Esri World Street (visual limpo) + fallback OSM.
 const esri = L.tileLayer(
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
   {
@@ -390,7 +426,6 @@ const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 })
 
 esri.addTo(map)
-
 esri.on('tileerror', () => {
   if (!map.hasLayer(osm)) {
     map.removeLayer(esri)
@@ -400,35 +435,51 @@ esri.on('tileerror', () => {
 
 let primaryLayer = null
 let altLayer = null
+let primaryGlow = null
 const markersLayer = L.layerGroup().addTo(map)
 
 function clearRoutes() {
-  if (primaryLayer) {
-    map.removeLayer(primaryLayer)
-    primaryLayer = null
-  }
-  if (altLayer) {
-    map.removeLayer(altLayer)
-    altLayer = null
-  }
+  ;[primaryGlow, primaryLayer, altLayer].forEach((layer) => {
+    if (layer) map.removeLayer(layer)
+  })
+  primaryGlow = null
+  primaryLayer = null
+  altLayer = null
   markersLayer.clearLayers()
 }
 
 function drawResult(result) {
   clearRoutes()
 
-  primaryLayer = L.polyline(result.primaryPath, {
-    color: result.level.key === 'high' ? '#e11d48' : result.level.key === 'medium' ? '#f5a623' : '#0d9488',
-    weight: 7,
-    opacity: 0.95,
+  const primaryColor =
+    result.level.key === 'high' ? '#e11d48' : result.level.key === 'medium' ? '#f5a623' : '#0d9488'
+
+  primaryGlow = L.polyline(result.primaryPath, {
+    color: primaryColor,
+    weight: 12,
+    opacity: 0.22,
+    lineCap: 'round',
+    lineJoin: 'round',
   }).addTo(map)
 
-  altLayer = L.polyline(result.alternative.path, {
-    color: '#0d9488',
+  primaryLayer = L.polyline(result.primaryPath, {
+    color: primaryColor,
     weight: 6,
-    opacity: 0.95,
-    dashArray: '10 8',
+    opacity: 0.98,
+    lineCap: 'round',
+    lineJoin: 'round',
   }).addTo(map)
+
+  if (result.alternative.hasRealGeometry) {
+    altLayer = L.polyline(result.alternative.path, {
+      color: '#0d9488',
+      weight: 5,
+      opacity: 0.95,
+      dashArray: '10 8',
+      lineCap: 'round',
+      lineJoin: 'round',
+    }).addTo(map)
+  }
 
   L.marker([result.origin.lat, result.origin.lng])
     .bindPopup(`<strong>Origem</strong><br>${result.origin.label}`)
@@ -437,8 +488,10 @@ function drawResult(result) {
     .bindPopup(`<strong>Destino</strong><br>${result.destination.label}`)
     .addTo(markersLayer)
 
-  const bounds = L.latLngBounds([...result.primaryPath, ...result.alternative.path])
-  map.fitBounds(bounds.pad(0.25))
+  const allPoints = result.alternative.hasRealGeometry
+    ? [...result.primaryPath, ...result.alternative.path]
+    : result.primaryPath
+  map.fitBounds(L.latLngBounds(allPoints).pad(0.2), { animate: true, duration: 0.75 })
   setTimeout(() => map.invalidateSize(), 50)
 
   const results = document.querySelector('#results')
@@ -446,23 +499,25 @@ function drawResult(result) {
   results.innerHTML = `
     <div class="alert alert--${result.level.key}">
       <strong>${result.level.title} (${result.level.label})</strong>
-      <span>${result.corridor.name} · horário ${result.time} · índice ${result.level.score}/100</span>
+      <span>${result.corridor.name} · ${result.time} · ${result.primary.distanceKm} km · índice ${result.level.score}/100</span>
     </div>
     <div class="result-grid">
       <article class="result-card">
+        <small>Rota principal</small>
+        <strong>${result.primary.minutes} min</strong>
+        <p>Fluxo livre ~${result.primary.freeFlowMin} min · com pico estimado ${result.primary.minutes} min</p>
+      </article>
+      <article class="result-card">
         <small>Rota alternativa</small>
         <strong>${result.alternative.name}</strong>
-        <p>Tempo estimado: ${result.alternative.minutes} min · economia de ${result.alternative.timeGainMin} min</p>
+        <p>${result.alternative.minutes} min · economia de ${result.alternative.timeGainMin} min${
+          result.alternative.hasRealGeometry ? ' · traçado no mapa' : ''
+        }</p>
       </article>
       <article class="result-card">
-        <small>Janela ideal de saída</small>
-        <strong>${result.ideal.label}</strong>
+        <small>Janela ideal · ODS 11</small>
+        <strong>${result.ideal.label} · −${result.alternative.co2Kg} kg CO₂</strong>
         <p>Fluxo pode reduzir cerca de ${result.ideal.flowGainPct}% vs. o horário simulado</p>
-      </article>
-      <article class="result-card">
-        <small>Impacto ambiental (ODS 11)</small>
-        <strong>−${result.alternative.co2Kg} kg CO₂</strong>
-        <p>Estimativa ao evitar retenção no corredor crítico</p>
       </article>
     </div>
     <ul class="tips">
@@ -471,26 +526,133 @@ function drawResult(result) {
   `
 }
 
-document.querySelector('#sim-form').addEventListener('submit', (event) => {
-  event.preventDefault()
-  const from = document.querySelector('#from').value
-  const to = document.querySelector('#to').value
+function showError(message) {
+  const results = document.querySelector('#results')
+  results.classList.add('is-visible')
+  results.innerHTML = `
+    <div class="alert alert--high">
+      <strong>Não foi possível simular</strong>
+      <span>${message}</span>
+    </div>
+  `
+}
+
+function debounce(fn, wait = 380) {
+  let timer
+  return (...args) => {
+    clearTimeout(timer)
+    timer = setTimeout(() => fn(...args), wait)
+  }
+}
+
+function bindAutocomplete(input, suggestEl, key) {
+  let controller = null
+
+  const render = (items) => {
+    if (!items.length) {
+      suggestEl.hidden = true
+      suggestEl.innerHTML = ''
+      return
+    }
+    suggestEl.hidden = false
+    suggestEl.innerHTML = items
+      .map(
+        (item, index) => `
+        <button type="button" class="suggest__item" data-index="${index}">
+          <strong>${item.label}</strong>
+          <span>${item.raw.split(',').slice(0, 4).join(',')}</span>
+        </button>`,
+      )
+      .join('')
+
+    suggestEl.querySelectorAll('.suggest__item').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const item = items[Number(btn.dataset.index)]
+        selected[key] = item
+        input.value = item.label
+        suggestEl.hidden = true
+      })
+    })
+  }
+
+  const runSearch = debounce(async () => {
+    const q = input.value.trim()
+    selected[key] = null
+    if (q.length < 3) {
+      render([])
+      return
+    }
+    controller?.abort()
+    controller = new AbortController()
+    try {
+      const items = await searchAddresses(q, { signal: controller.signal })
+      render(items)
+    } catch (error) {
+      if (error.name !== 'AbortError') render([])
+    }
+  })
+
+  input.addEventListener('input', runSearch)
+  input.addEventListener('focus', () => {
+    if (suggestEl.innerHTML) suggestEl.hidden = false
+  })
+  document.addEventListener('click', (event) => {
+    if (!suggestEl.contains(event.target) && event.target !== input) {
+      suggestEl.hidden = true
+    }
+  })
+}
+
+bindAutocomplete(fromInput, document.querySelector('#from-suggest'), 'from')
+bindAutocomplete(toInput, document.querySelector('#to-suggest'), 'to')
+
+document.querySelectorAll('.chip-row').forEach((row) => {
+  const target = row.dataset.target
+  row.querySelectorAll('.chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const input = document.querySelector(`#${target}`)
+      input.value = chip.dataset.query
+      selected[target] = null
+      input.focus()
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+  })
+})
+
+async function runSimulation() {
+  const fromValue = selected.from || fromInput.value.trim()
+  const toValue = selected.to || toInput.value.trim()
   const time = document.querySelector('#time').value
 
+  submitBtn.disabled = true
+  submitBtn.textContent = 'Calculando rota…'
+  document.querySelector('#results').classList.add('is-visible')
+  document.querySelector('#results').innerHTML = `
+    <div class="alert alert--medium">
+      <strong>Traçando rota nas vias de BH…</strong>
+      <span>Buscando endereços e montando o caminho no mapa.</span>
+    </div>
+  `
+
   try {
-    const result = simulateRoute({ from, to, time })
+    const result = await simulateRoute({ from: fromValue, to: toValue, time })
+    selected.from = result.origin
+    selected.to = result.destination
+    fromInput.value = result.origin.label
+    toInput.value = result.destination.label
     drawResult(result)
     document.querySelector('#results').scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   } catch (error) {
-    const results = document.querySelector('#results')
-    results.classList.add('is-visible')
-    results.innerHTML = `
-      <div class="alert alert--high">
-        <strong>Não foi possível simular</strong>
-        <span>${error.message}</span>
-      </div>
-    `
+    showError(error.message || 'Erro inesperado ao simular')
+  } finally {
+    submitBtn.disabled = false
+    submitBtn.textContent = 'Simular rota agora'
   }
+}
+
+document.querySelector('#sim-form').addEventListener('submit', (event) => {
+  event.preventDefault()
+  runSimulation()
 })
 
 const nav = document.querySelector('#nav')
@@ -531,9 +693,5 @@ window.addEventListener('resize', () => map.invalidateSize())
 
 requestAnimationFrame(() => {
   map.invalidateSize()
-  try {
-    drawResult(simulateRoute({ from: 'pampulha', to: 'centro', time: '07:30' }))
-  } catch {
-    // ignore
-  }
+  runSimulation()
 })
