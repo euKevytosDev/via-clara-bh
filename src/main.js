@@ -6,6 +6,7 @@ import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 import { places, bhCenter } from './corridors.js'
 import { simulateRoute } from './simulator.js'
+import { icons } from './icons.js'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -19,16 +20,24 @@ const placeOptions = places
   .join('')
 
 document.querySelector('#app').innerHTML = `
+  <div class="page-bg" aria-hidden="true">
+    <div class="page-bg__photo page-bg__photo--a"></div>
+    <div class="page-bg__photo page-bg__photo--b"></div>
+    <div class="page-bg__glow"></div>
+  </div>
+
   <header class="nav" id="nav">
     <div class="container nav__inner">
       <a class="brand" href="#topo">ViaClara <span>BH</span> <small>Mobilidade e Cia</small></a>
       <nav class="nav__links" aria-label="Seções">
-        <a href="#problema">Problema</a>
-        <a href="#solucao">Solução</a>
+        <a href="#historia">História</a>
+        <a href="#problema">Cenário</a>
+        <a href="#beneficios">Benefícios</a>
+        <a href="#curiosidades">Curiosidades</a>
         <a href="#simulador">Simulador</a>
         <a href="#ods">ODS 11</a>
       </nav>
-      <a class="nav__cta" href="#simulador">Testar rota</a>
+      <a class="nav__cta" href="#simulador">Simular rota</a>
     </div>
   </header>
 
@@ -36,121 +45,233 @@ document.querySelector('#app').innerHTML = `
     <section class="hero">
       <div class="hero__media" aria-hidden="true">
         <img
-          src="https://images.unsplash.com/photo-1544620341-609bcdbae563?auto=format&fit=crop&w=2000&q=80"
+          src="https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&w=2200&q=80"
           alt=""
-          width="2000"
-          height="1333"
+          width="2200"
+          height="1467"
         />
         <div class="hero__veil"></div>
+        <div class="hero__traffic-strip"></div>
       </div>
       <div class="container hero__content">
-        <p class="eyebrow">Cidades inteligentes · Belo Horizonte</p>
+        <p class="eyebrow">Mobilidade urbana inteligente · Belo Horizonte</p>
         <h1>ViaClara <em>BH</em></h1>
         <p class="hero__lead">
-          Landing educativa da Mobilidade e Cia para entender o congestionamento,
-          simular rotas mais rápidas e estimar impacto ambiental no deslocamento urbano.
+          Plataforma da Mobilidade e Cia que traduz o congestionamento de Belo Horizonte
+          em informação clara: corredores críticos, horários de pico, rotas alternativas
+          e estimativa de impacto ambiental.
         </p>
         <div class="hero__actions">
-          <a class="btn btn--primary" href="#simulador">Abrir simulador de rotas</a>
-          <a class="btn btn--ghost" href="#solucao">Ver como funciona</a>
+          <a class="btn btn--primary" href="#simulador">Simular meu deslocamento</a>
+          <a class="btn btn--ghost" href="#historia">Conhecer o contexto de BH</a>
         </div>
         <div class="hero__meta">
-          <div><strong>6</strong> corredores críticos mapeados</div>
+          <div><strong>6</strong> corredores estruturantes</div>
           <div><strong>ODS 11</strong> metas 11.6 e 11.7</div>
-          <div><strong>Demo ao vivo</strong> para apresentação</div>
+          <div><strong>Mapa ao vivo</strong> OpenStreetMap</div>
         </div>
+      </div>
+      <div class="hero__float-icons" aria-hidden="true">
+        <span class="float-icon float-icon--1">${icons.car}</span>
+        <span class="float-icon float-icon--2">${icons.bus}</span>
+        <span class="float-icon float-icon--3">${icons.signal}</span>
+      </div>
+    </section>
+
+    <section class="story" id="historia">
+      <div class="container story__grid">
+        <div class="story__copy reveal">
+          <p class="eyebrow">Do plano pioneiro ao trânsito do século XXI</p>
+          <h2>Belo Horizonte nasceu planejada — e cresceu além das vias</h2>
+          <p>
+            Projetada no final do século XIX como capital moderna de Minas Gerais,
+            Belo Horizonte foi pensada com avenidas largas e um desenho geométrico inovador
+            para a época. O Centro, organizado em torno de praças e eixos como Afonso Pena
+            e Amazonas, concentrou comércio, serviços e fluxo de pessoas desde cedo.
+          </p>
+          <p>
+            Com a expansão da Região Metropolitana, o automóvel ganhou protagonismo.
+            Corredores que ligam Pampulha, Venda Nova, Barreiro e o Centro passaram a
+            absorver deslocamentos diários intensos. Em horários de pico, avenidas como
+            Antônio Carlos, Cristiano Machado, Contorno e Tereza Cristina operam no limite,
+            elevando tempo de viagem, estresse e emissões.
+          </p>
+          <p>
+            É nesse cenário que a Mobilidade e Cia propõe a ViaClara BH: tornar o trânsito
+            legível para a população e apoiar escolhas de rota e horário com menor retenção.
+          </p>
+        </div>
+        <aside class="story__aside reveal">
+          <figure class="photo-card">
+            <img
+              src="https://images.unsplash.com/photo-1502481851512-e9e2529da23d?auto=format&fit=crop&w=1400&q=80"
+              alt="Trânsito urbano intenso à noite"
+              width="1400"
+              height="933"
+              loading="lazy"
+            />
+            <figcaption>Fluxo intenso em vias arteriais — referência visual do desafio urbano.</figcaption>
+          </figure>
+          <div class="icon-strip">
+            <div class="icon-chip">${icons.city}<span>Centro histórico e eixos comerciais</span></div>
+            <div class="icon-chip">${icons.car}<span>Alta dependência do modal individual</span></div>
+            <div class="icon-chip">${icons.clock}<span>Picos matinais e vespertinos recorrentes</span></div>
+          </div>
+        </aside>
       </div>
     </section>
 
     <section class="problem" id="problema">
       <div class="container">
         <div class="section-head reveal">
-          <h2>BH perde tempo e qualidade do ar no trânsito parado</h2>
+          <h2>O centro e os corredores sob pressão</h2>
           <p>
-            Corredores como Antônio Carlos, Cristiano Machado e Amazonas saturam em horários de pico.
-            A ViaClara BH torna esse problema visível e acionável na apresentação.
+            O problema não é apenas “trânsito parado”: é previsibilidade perdida, qualidade
+            do ar comprometida e tempo que deixa de ser produtividade, lazer ou descanso.
           </p>
         </div>
+
+        <div class="prose-panel reveal">
+          <p>
+            Nos deslocamentos casa–trabalho–estudo, milhares de veículos convergem para os
+            mesmos eixos em janelas curtas. O resultado é o clássico para-e-anda: aceleração
+            e frenagem constantes, maior consumo de combustível e aumento de poluentes locais.
+            Para pedestres e usuários do transporte coletivo, a saturação também significa
+            ônibus mais lentos e menor confiabilidade das linhas.
+          </p>
+          <p>
+            A ViaClara BH organiza esse diagnóstico em linguagem acessível e permite testar,
+            na prática, o efeito de mudar horário ou rota — sem depender de aplicativos pagos
+            ou chaves de API comerciais.
+          </p>
+        </div>
+
         <div class="problem__grid">
           <article class="stat-card reveal">
+            <div class="stat-card__icon">${icons.clock}</div>
             <strong>+40 min</strong>
             <span>atraso típico simulado em pico nos eixos principais</span>
           </article>
           <article class="stat-card reveal">
+            <div class="stat-card__icon">${icons.signal}</div>
             <strong>07h–09h</strong>
-            <span>janela crítica matinal com lentidão alta</span>
+            <span>janela crítica matinal com lentidão elevada</span>
           </article>
           <article class="stat-card reveal">
+            <div class="stat-card__icon">${icons.leaf}</div>
             <strong>CO₂↑</strong>
-            <span>para-e-anda eleva emissões por quilômetro rodado</span>
+            <span>retenção eleva emissões por quilômetro rodado</span>
           </article>
         </div>
-        <div class="split-visual">
-          <figure class="reveal">
-            <img
-              src="https://images.unsplash.com/photo-1502481851512-e9e2529da23d?auto=format&fit=crop&w=1600&q=80"
-              alt="Trânsito urbano congestionado à noite"
-              width="1600"
-              height="1066"
-              loading="lazy"
-            />
-            <figcaption>Congestionamento urbano em horário de pico — imagem ilustrativa.</figcaption>
-          </figure>
-          <figure class="reveal">
-            <img
-              src="https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&w=1400&q=80"
-              alt="Vias urbanas com fluxo intenso de veículos"
-              width="1400"
-              height="933"
-              loading="lazy"
-            />
-            <figcaption>Fluxo intenso em vias arteriais — referência visual para a demo.</figcaption>
-          </figure>
+
+        <div class="corridor-list reveal">
+          <h3>Corredores monitorados na plataforma</h3>
+          <div class="pill-row">
+            <span class="pill">Av. Antônio Carlos</span>
+            <span class="pill">Av. Cristiano Machado</span>
+            <span class="pill">Av. Amazonas</span>
+            <span class="pill">Av. do Contorno</span>
+            <span class="pill">Av. Afonso Pena</span>
+            <span class="pill">Av. Tereza Cristina</span>
+          </div>
         </div>
       </div>
     </section>
 
-    <section id="solucao">
+    <section class="benefits" id="beneficios">
       <div class="container">
         <div class="section-head reveal">
-          <h2>Uma landing que ensina e demonstra na prática</h2>
+          <h2>Benefícios da ViaClara BH</h2>
           <p>
-            Além do conteúdo institucional, a plataforma entrega uma ferramenta interativa
-            para a banca: origem, destino, horário e resposta imediata.
+            Mais do que uma página institucional, a plataforma entrega informação útil
+            para quem se desloca e clareza para quem comunica mobilidade urbana.
           </p>
         </div>
         <div class="feature-grid">
           <article class="feature reveal">
-            <div class="feature__icon">01</div>
-            <h3>Alerta de pico</h3>
-            <p>Detecta gargalos em corredores de BH conforme o horário escolhido.</p>
+            <div class="feature__icon">${icons.signal}</div>
+            <h3>Leitura rápida do pico</h3>
+            <p>Identifica gargalos conforme horário e corredor, com alertas compreensíveis.</p>
           </article>
           <article class="feature reveal">
-            <div class="feature__icon">02</div>
-            <h3>Rota alternativa</h3>
-            <p>Sugere desvio simulado com economia estimada de minutos.</p>
+            <div class="feature__icon">${icons.route}</div>
+            <h3>Alternativas simuladas</h3>
+            <p>Sugere trajetos secundários e estima economia de minutos no deslocamento.</p>
           </article>
           <article class="feature reveal">
-            <div class="feature__icon">03</div>
-            <h3>Janela ideal</h3>
-            <p>Indica horário próximo com menor retenção para sair.</p>
+            <div class="feature__icon">${icons.clock}</div>
+            <h3>Janela ideal de saída</h3>
+            <p>Indica horários próximos com menor retenção para planejar melhor o dia.</p>
           </article>
           <article class="feature reveal">
-            <div class="feature__icon">04</div>
-            <h3>Impacto ambiental</h3>
-            <p>Estima redução de CO₂ ao evitar o para-e-anda — vínculo direto com ODS 11.</p>
+            <div class="feature__icon">${icons.leaf}</div>
+            <h3>Consciência ambiental</h3>
+            <p>Mostra estimativa de CO₂ evitado ao reduzir o para-e-anda — alinhado ao ODS 11.</p>
           </article>
           <article class="feature reveal">
-            <div class="feature__icon">05</div>
-            <h3>Mapa interativo</h3>
-            <p>Leaflet + OpenStreetMap com traçado do corredor crítico e da alternativa.</p>
+            <div class="feature__icon">${icons.mapPin}</div>
+            <h3>Mapa interativo gratuito</h3>
+            <p>Visualiza BH com OpenStreetMap/Leaflet, sem chave paga de mapas comerciais.</p>
           </article>
           <article class="feature reveal">
-            <div class="feature__icon">06</div>
-            <h3>Conteúdo educativo</h3>
-            <p>Explica padrões de congestão e boas práticas de mobilidade inteligente.</p>
+            <div class="feature__icon">${icons.city}</div>
+            <h3>Educação em mobilidade</h3>
+            <p>Explica padrões urbanos e incentiva escolhas mais eficientes de deslocamento.</p>
           </article>
         </div>
+      </div>
+    </section>
+
+    <section class="curiosities" id="curiosidades">
+      <div class="container curiosities__grid">
+        <div class="section-head reveal">
+          <h2>Curiosidades do trânsito em BH</h2>
+          <p>Alguns fatos que ajudam a entender por que o mapeamento inteligente importa.</p>
+        </div>
+        <div class="curiosity-cards">
+          <article class="curiosity reveal">
+            <span class="curiosity__n">01</span>
+            <h3>Capital planejada, metrópole viva</h3>
+            <p>
+              O traçado original privilegiava avenidas amplas, mas o crescimento metropolitano
+              e a motorização ampliada transformaram esses eixos em artérias saturadas.
+            </p>
+          </article>
+          <article class="curiosity reveal">
+            <span class="curiosity__n">02</span>
+            <h3>Pico tem “cara” de corredor</h3>
+            <p>
+              Antônio Carlos e Cristiano Machado concentram fluxo norte–centro; Amazonas e
+              Tereza Cristina pesam no sentido Barreiro; Contorno e Afonso Pena tensionam o miolo urbano.
+            </p>
+          </article>
+          <article class="curiosity reveal">
+            <span class="curiosity__n">03</span>
+            <h3>Minutos viram emissões</h3>
+            <p>
+              Em congestão, o veículo gasta mais energia para percorrer a mesma distância.
+              Evitar retenção não é só conforto: é também qualidade do ar.
+            </p>
+          </article>
+          <article class="curiosity reveal">
+            <span class="curiosity__n">04</span>
+            <h3>Mudar 30 minutos muda o jogo</h3>
+            <p>
+              Sair um pouco antes ou depois do pico pode reduzir drasticamente o tempo parado.
+              O simulador torna essa diferença visível e fácil de demonstrar.
+            </p>
+          </article>
+        </div>
+        <figure class="photo-banner reveal">
+          <img
+            src="https://images.unsplash.com/photo-1544620341-609bcdbae563?auto=format&fit=crop&w=1800&q=80"
+            alt="Ônibus e veículos em via urbana congestionada"
+            width="1800"
+            height="1200"
+            loading="lazy"
+          />
+          <figcaption>Transporte coletivo e veículos individuais compartilham os mesmos gargalos urbanos.</figcaption>
+        </figure>
       </div>
     </section>
 
@@ -159,8 +280,8 @@ document.querySelector('#app').innerHTML = `
         <div class="section-head reveal">
           <h2>Simulador inteligente de rotas</h2>
           <p>
-            Escolha origem, destino e horário. O sistema calcula alerta, alternativa,
-            melhor janela de saída e economia estimada de CO₂.
+            Escolha origem, destino e horário. A ViaClara BH calcula alerta de pico,
+            rota alternativa, janela ideal de saída e estimativa de economia de CO₂.
           </p>
         </div>
 
@@ -169,55 +290,28 @@ document.querySelector('#app').innerHTML = `
             <h3>Planejar deslocamento</h3>
             <div class="field">
               <label for="from">Origem</label>
-              <select id="from" name="from" required>
-                ${placeOptions}
-              </select>
+              <select id="from" name="from" required>${placeOptions}</select>
             </div>
             <div class="field">
               <label for="to">Destino</label>
-              <select id="to" name="to" required>
-                ${placeOptions}
-              </select>
+              <select id="to" name="to" required>${placeOptions}</select>
             </div>
             <div class="field">
               <label for="time">Horário pretendido</label>
               <input id="time" name="time" type="time" value="07:30" required />
             </div>
             <button class="btn btn--primary" type="submit">Simular rota agora</button>
-            <p style="margin:0;color:var(--muted);font-size:0.85rem">
-              Dica para o pitch: teste 07:30 na Antônio Carlos (Pampulha → Centro).
+            <p class="form-hint">
+              Experimente Pampulha → Centro às 07:30 e compare com 10:30.
             </p>
           </form>
 
           <div class="sim-map-wrap">
-            <div class="map-note">Mapa real · OpenStreetMap</div>
+            <div class="map-note">Mapa real · Leaflet + OpenStreetMap</div>
             <div id="map" role="region" aria-label="Mapa de Belo Horizonte"></div>
           </div>
 
           <div class="results" id="results" aria-live="polite"></div>
-        </div>
-      </div>
-    </section>
-
-    <section id="como">
-      <div class="container">
-        <div class="section-head reveal">
-          <h2>Como usar na apresentação</h2>
-          <p>Em três passos você demonstra o produto completo para a professora.</p>
-        </div>
-        <div class="steps">
-          <article class="step reveal">
-            <h3>Escolher trajeto</h3>
-            <p>Defina origem e destino entre pontos reais de Belo Horizonte.</p>
-          </article>
-          <article class="step reveal">
-            <h3>Simular horário</h3>
-            <p>Compare pico (07:30 / 18:00) com janelas mais livres.</p>
-          </article>
-          <article class="step reveal">
-            <h3>Mostrar impacto</h3>
-            <p>Apresente minutos economizados e CO₂ evitado na alternativa.</p>
-          </article>
         </div>
       </div>
     </section>
@@ -228,32 +322,36 @@ document.querySelector('#app').innerHTML = `
           <span class="ods__badge">Agenda 2030</span>
           <h3>ODS 11 — Cidades e Comunidades Sustentáveis</h3>
           <p>
-            O projeto apoia a meta 11.6 (reduzir impacto ambiental negativo per capita,
-            inclusive qualidade do ar) e a meta 11.7 (espaços públicos mais seguros e acessíveis),
-            ao educar sobre congestionamento e incentivar escolhas de deslocamento mais eficientes.
+            A ViaClara BH dialoga com a meta 11.6 (reduzir o impacto ambiental negativo
+            per capita das cidades, inclusive quanto à qualidade do ar) e com a meta 11.7
+            (ampliar o acesso a espaços públicos seguros, inclusivos e acessíveis), ao
+            estimular deslocamentos mais eficientes e conscientes.
           </p>
           <div class="pill-row">
             <span class="pill">Meta 11.6 · qualidade do ar</span>
             <span class="pill">Meta 11.7 · cidade acessível</span>
             <span class="pill">Mobilidade inteligente</span>
-            <span class="pill">UPx 1 · Newton Paiva</span>
+            <span class="pill">Belo Horizonte</span>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="pitch">
+    <section class="closing">
       <div class="container">
-        <div class="pitch__card reveal">
+        <div class="closing__card reveal">
+          <div class="closing__icons" aria-hidden="true">
+            ${icons.bus}${icons.route}${icons.leaf}
+          </div>
           <h2>Mobilidade e Cia · ViaClara BH</h2>
           <p>
-            Produto acadêmico individual para UPx 1: landing page institucional + simulador
-            interativo de rotas para Belo Horizonte. Dados de retenção e ganhos são estimativas
-            didáticas para demonstração — sem custo de API paga.
+            Uma plataforma educativa e interativa para compreender o congestionamento
+            em Belo Horizonte, apoiar decisões de deslocamento e conectar mobilidade urbana
+            às metas de sustentabilidade da Agenda 2030.
           </p>
-          <div class="hero__actions" style="margin-top:1.25rem">
-            <a class="btn btn--primary" href="#simulador">Voltar ao simulador</a>
-            <a class="btn btn--ghost" href="#topo">Ir ao início</a>
+          <div class="hero__actions">
+            <a class="btn btn--primary" href="#simulador">Ir ao simulador</a>
+            <a class="btn btn--ghost" href="#historia">Rever o contexto</a>
           </div>
         </div>
       </div>
@@ -262,30 +360,45 @@ document.querySelector('#app').innerHTML = `
 
   <footer class="footer">
     <div class="container footer__inner">
-      <span>ViaClara BH · Mobilidade e Cia (instituição fictícia)</span>
-      <span>Projeto UPx 1 · Cidades Inteligentes · Belo Horizonte</span>
+      <span>ViaClara BH · Mobilidade e Cia</span>
+      <span>Cidades Inteligentes · Belo Horizonte</span>
     </div>
   </footer>
 `
 
-// Defaults for pitch demo
 document.querySelector('#from').value = 'pampulha'
 document.querySelector('#to').value = 'centro'
 
 const map = L.map('map', {
   zoomControl: true,
-  scrollWheelZoom: false,
+  scrollWheelZoom: true,
+  preferCanvas: true,
 }).setView(bhCenter, 12)
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+// Camada colorida e legível (sem API key). Fallback OSM clássico.
+const voyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
   attribution: '&copy; OpenStreetMap &copy; CARTO',
   subdomains: 'abcd',
   maxZoom: 19,
-}).addTo(map)
+})
+
+const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap',
+  maxZoom: 19,
+})
+
+voyager.addTo(map)
+
+voyager.on('tileerror', () => {
+  if (!map.hasLayer(osm)) {
+    map.removeLayer(voyager)
+    osm.addTo(map)
+  }
+})
 
 let primaryLayer = null
 let altLayer = null
-let markersLayer = L.layerGroup().addTo(map)
+const markersLayer = L.layerGroup().addTo(map)
 
 function clearRoutes() {
   if (primaryLayer) {
@@ -303,23 +416,28 @@ function drawResult(result) {
   clearRoutes()
 
   primaryLayer = L.polyline(result.primaryPath, {
-    color: result.level.key === 'high' ? '#ff5c5c' : result.level.key === 'medium' ? '#f5a623' : '#2dd4bf',
-    weight: 6,
+    color: result.level.key === 'high' ? '#e11d48' : result.level.key === 'medium' ? '#f5a623' : '#0d9488',
+    weight: 7,
     opacity: 0.95,
   }).addTo(map)
 
   altLayer = L.polyline(result.alternative.path, {
-    color: '#2dd4bf',
-    weight: 5,
-    opacity: 0.9,
+    color: '#0d9488',
+    weight: 6,
+    opacity: 0.95,
     dashArray: '10 8',
   }).addTo(map)
 
-  L.marker(result.origin).bindPopup(`Origem: ${result.origin.label}`).addTo(markersLayer)
-  L.marker(result.destination).bindPopup(`Destino: ${result.destination.label}`).addTo(markersLayer)
+  L.marker([result.origin.lat, result.origin.lng])
+    .bindPopup(`<strong>Origem</strong><br>${result.origin.label}`)
+    .addTo(markersLayer)
+  L.marker([result.destination.lat, result.destination.lng])
+    .bindPopup(`<strong>Destino</strong><br>${result.destination.label}`)
+    .addTo(markersLayer)
 
   const bounds = L.latLngBounds([...result.primaryPath, ...result.alternative.path])
-  map.fitBounds(bounds.pad(0.2))
+  map.fitBounds(bounds.pad(0.25))
+  setTimeout(() => map.invalidateSize(), 50)
 
   const results = document.querySelector('#results')
   results.classList.add('is-visible')
@@ -332,7 +450,7 @@ function drawResult(result) {
       <article class="result-card">
         <small>Rota alternativa</small>
         <strong>${result.alternative.name}</strong>
-        <p>Tempo estimado na alternativa: ${result.alternative.minutes} min · economia de ${result.alternative.timeGainMin} min</p>
+        <p>Tempo estimado: ${result.alternative.minutes} min · economia de ${result.alternative.timeGainMin} min</p>
       </article>
       <article class="result-card">
         <small>Janela ideal de saída</small>
@@ -342,7 +460,7 @@ function drawResult(result) {
       <article class="result-card">
         <small>Impacto ambiental (ODS 11)</small>
         <strong>−${result.alternative.co2Kg} kg CO₂</strong>
-        <p>Estimativa didática ao evitar retenção do corredor crítico</p>
+        <p>Estimativa ao evitar retenção no corredor crítico</p>
       </article>
     </div>
     <ul class="tips">
@@ -373,17 +491,13 @@ document.querySelector('#sim-form').addEventListener('submit', (event) => {
   }
 })
 
-// Nav scroll state
 const nav = document.querySelector('#nav')
 window.addEventListener(
   'scroll',
-  () => {
-    nav.classList.toggle('is-scrolled', window.scrollY > 20)
-  },
+  () => nav.classList.toggle('is-scrolled', window.scrollY > 20),
   { passive: true },
 )
 
-// Reveal on view
 const io = new IntersectionObserver(
   (entries) => {
     entries.forEach((entry) => {
@@ -393,17 +507,31 @@ const io = new IntersectionObserver(
       }
     })
   },
-  { threshold: 0.15 },
+  { threshold: 0.12 },
 )
 document.querySelectorAll('.reveal').forEach((el) => io.observe(el))
 
-// Fix map size after layout
-setTimeout(() => map.invalidateSize(), 200)
+const mapWrap = document.querySelector('.sim-map-wrap')
+const mapIo = new IntersectionObserver(
+  (entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        map.invalidateSize()
+        setTimeout(() => map.invalidateSize(), 150)
+      }
+    })
+  },
+  { threshold: 0.2 },
+)
+mapIo.observe(mapWrap)
+
 window.addEventListener('resize', () => map.invalidateSize())
 
-// Auto-run a gentle default preview route (low pressure) so map isn't empty
-try {
-  drawResult(simulateRoute({ from: 'pampulha', to: 'centro', time: '10:30' }))
-} catch {
-  // ignore
-}
+requestAnimationFrame(() => {
+  map.invalidateSize()
+  try {
+    drawResult(simulateRoute({ from: 'pampulha', to: 'centro', time: '07:30' }))
+  } catch {
+    // ignore
+  }
+})
