@@ -549,11 +549,40 @@ function debounce(fn, wait = 380) {
 
 function bindAutocomplete(input, suggestEl, key) {
   let controller = null
+  let requestId = 0
+  let latestItems = []
+  let lockedAfterSelect = false
+
+  const closeSuggest = () => {
+    suggestEl.hidden = true
+    suggestEl.innerHTML = ''
+  }
+
+  const choose = (item) => {
+    lockedAfterSelect = true
+    controller?.abort()
+    requestId += 1
+    selected[key] = item
+    input.value = item.label
+    closeSuggest()
+    input.blur()
+  }
+
+  // mousedown + preventDefault evita perder o clique (bug clássico de autocomplete)
+  suggestEl.addEventListener('mousedown', (event) => {
+    const btn = event.target.closest('.suggest__item')
+    if (!btn) return
+    event.preventDefault()
+    event.stopPropagation()
+    const item = latestItems[Number(btn.dataset.index)]
+    if (item) choose(item)
+  })
 
   const render = (items) => {
+    if (lockedAfterSelect) return
+    latestItems = items
     if (!items.length) {
-      suggestEl.hidden = true
-      suggestEl.innerHTML = ''
+      closeSuggest()
       return
     }
     suggestEl.hidden = false
@@ -566,42 +595,52 @@ function bindAutocomplete(input, suggestEl, key) {
         </button>`,
       )
       .join('')
-
-    suggestEl.querySelectorAll('.suggest__item').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const item = items[Number(btn.dataset.index)]
-        selected[key] = item
-        input.value = item.label
-        suggestEl.hidden = true
-      })
-    })
   }
 
   const runSearch = debounce(async () => {
     const q = input.value.trim()
+    if (selected[key]?.label === q) {
+      closeSuggest()
+      return
+    }
+
     selected[key] = null
     if (q.length < 3) {
       render([])
       return
     }
+
     controller?.abort()
     controller = new AbortController()
+    const currentId = ++requestId
+
     try {
       const items = await searchAddresses(q, { signal: controller.signal })
+      if (currentId !== requestId || lockedAfterSelect) return
       render(items)
     } catch (error) {
-      if (error.name !== 'AbortError') render([])
+      if (error.name !== 'AbortError' && currentId === requestId) render([])
+    }
+  }, 320)
+
+  input.addEventListener('input', () => {
+    lockedAfterSelect = false
+    runSearch()
+  })
+
+  input.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeSuggest()
+  })
+
+  input.addEventListener('focus', () => {
+    if (!lockedAfterSelect && latestItems.length && !selected[key]) {
+      render(latestItems)
     }
   })
 
-  input.addEventListener('input', runSearch)
-  input.addEventListener('focus', () => {
-    if (suggestEl.innerHTML) suggestEl.hidden = false
-  })
-  document.addEventListener('click', (event) => {
-    if (!suggestEl.contains(event.target) && event.target !== input) {
-      suggestEl.hidden = true
-    }
+  document.addEventListener('mousedown', (event) => {
+    if (event.target === input || suggestEl.contains(event.target)) return
+    closeSuggest()
   })
 }
 
