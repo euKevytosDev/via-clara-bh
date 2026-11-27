@@ -9,6 +9,13 @@ import { quickPlaces, simulateRoute } from './simulator.js'
 import { searchAddresses } from './geo.js'
 import { icons } from './icons.js'
 
+const asset = (path) => `${import.meta.env.BASE_URL}${path.replace(/^\//, '')}`
+const imgTransito1 = asset('images/transito-bh-1.webp')
+const imgTransito2 = asset('images/transito-bh-2.webp')
+
+document.documentElement.style.setProperty('--img-transito-1', `url("${imgTransito1}")`)
+document.documentElement.style.setProperty('--img-transito-2', `url("${imgTransito2}")`)
+
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
@@ -49,10 +56,10 @@ document.querySelector('#app').innerHTML = `
     <section class="hero">
       <div class="hero__media" aria-hidden="true">
         <img
-          src="https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&w=2200&q=80"
-          alt=""
-          width="2200"
-          height="1467"
+          src="${imgTransito2}"
+          alt="Trânsito intenso em Belo Horizonte à noite"
+          width="1280"
+          height="720"
         />
         <div class="hero__veil"></div>
         <div class="hero__traffic-strip"></div>
@@ -108,13 +115,13 @@ document.querySelector('#app').innerHTML = `
         <aside class="story__aside reveal">
           <figure class="photo-card">
             <img
-              src="https://images.unsplash.com/photo-1502481851512-e9e2529da23d?auto=format&fit=crop&w=1400&q=80"
-              alt="Trânsito urbano intenso à noite"
-              width="1400"
-              height="933"
+              src="${imgTransito1}"
+              alt="Congestionamento noturno com veículos parados em fila"
+              width="1280"
+              height="720"
               loading="lazy"
             />
-            <figcaption>Fluxo intenso em vias arteriais — referência visual do desafio urbano.</figcaption>
+            <figcaption>Congestionamento noturno em vias de Belo Horizonte — o desafio que a ViaClara BH torna visível.</figcaption>
           </figure>
           <div class="icon-strip">
             <div class="icon-chip">${icons.city}<span>Centro histórico e eixos comerciais</span></div>
@@ -268,13 +275,13 @@ document.querySelector('#app').innerHTML = `
         </div>
         <figure class="photo-banner reveal">
           <img
-            src="https://images.unsplash.com/photo-1544620341-609bcdbae563?auto=format&fit=crop&w=1800&q=80"
-            alt="Ônibus e veículos em via urbana congestionada"
-            width="1800"
-            height="1200"
+            src="${imgTransito2}"
+            alt="Trânsito pesado em Belo Horizonte com placa para Centro e Praça da Estação"
+            width="1280"
+            height="720"
             loading="lazy"
           />
-          <figcaption>Transporte coletivo e veículos individuais compartilham os mesmos gargalos urbanos.</figcaption>
+          <figcaption>Centro de BH sob pressão: ônibus e veículos disputam os mesmos eixos em horário de pico.</figcaption>
         </figure>
       </div>
     </section>
